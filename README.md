@@ -286,6 +286,13 @@ Built for first-year students at **VIT Vellore** by **[Swagata Banerjee](https:/
 
 ---
 
+## Roadmap, contributing and citation
+
+- **Roadmap:** [ROADMAP.md](ROADMAP.md) lists planned work and directions for the project.
+- **Contributing:** see [CONTRIBUTING.md](CONTRIBUTING.md) and the
+  [Code of Conduct](CODE_OF_CONDUCT.md). Issues labelled `good first issue` are a friendly start.
+- **Citation:** [CITATION.cff](CITATION.cff) powers GitHub's "Cite this repository" button.
+
 ## 📄 License
 
 Released under the [MIT License](LICENSE). See [LICENSE](LICENSE) for details.

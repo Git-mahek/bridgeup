@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "BridgeUp"
+abstract: "An adaptive Python learning platform with in-browser execution, an AI tutor and privacy-preserving federated learning."
+type: software
+authors:
+  - family-names: "Banerjee"
+    given-names: "Swagata"
+repository-code: "https://github.com/gitswagata1/bridgeup"
+license: MIT
+version: "1.0.0"
+date-released: "2026-11-16"
+keywords:
+  - education
+  - python
+  - federated-learning
+  - pyodide
