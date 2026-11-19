@@ -1351,7 +1351,7 @@ html.light .tcard { background: var(--panel); box-shadow: 0 6px 22px -14px rgba(
 
 /* dark islands preserved */
 html.light .code-window { background: #0e1830; }
-html.light .float-card { background: rgba(19,29,51,.92); color: #e8edf7; }
+html.light .float-card { background: rgba(19,29,51,.92); color: var(--ink); }
 html.light .float-card .fc-text span { color: #9fb0cc; }
 
 /* scrollbars */
@@ -1380,10 +1380,10 @@ html.light .sec-done-badge { color: #0b6e62; }
    FEDERATED ADAPTIVE LEARNING — adaptive path card + federated chips
    ============================================================ */
 .adapt-card { display: flex; gap: 18px; align-items: flex-start; margin: 0 0 30px; padding: 22px 24px;
-  background: linear-gradient(150deg, color-mix(in srgb, var(--accent, #3b82f6) 12%, var(--panel)), var(--panel) 70%);
-  border: 1px solid var(--line); border-left: 3px solid var(--accent, #3b82f6); border-radius: var(--radius); }
-.adapt-card.done { --accent: #14b8a6; }
-.adapt-ic { flex: none; width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; color: var(--accent, #3b82f6); background: color-mix(in srgb, var(--accent, #3b82f6) 16%, transparent); }
+  background: linear-gradient(150deg, color-mix(in srgb, var(--accent, var(--blue)) 12%, var(--panel)), var(--panel) 70%);
+  border: 1px solid var(--line); border-left: 3px solid var(--accent, var(--blue)); border-radius: var(--radius); }
+.adapt-card.done { --accent: var(--teal); }
+.adapt-ic { flex: none; width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; color: var(--accent, var(--blue)); background: color-mix(in srgb, var(--accent, var(--blue)) 16%, transparent); }
 .adapt-ic svg { width: 23px; height: 23px; }
 .adapt-body { flex: 1; min-width: 0; }
 .adapt-body h3 { font-size: 18px; letter-spacing: -.01em; margin: 4px 0 6px; }
@@ -1446,7 +1446,7 @@ html.light .adapt-chip.ac-hard { color: #a16207; }
 }
 
 /* ---------- How the ML works ---------- */
-.pill-demo { color: #f59e0b; background: rgba(245,158,11,.14); }
+.pill-demo { color: var(--amber); background: rgba(245,158,11,.14); }
 .ml-flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin-bottom: 20px; }
 .ml-step { flex: 1 1 160px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
 .ml-step b { color: var(--ink); font-size: 14px; }
