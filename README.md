@@ -157,7 +157,9 @@ Open **[`…/bridgeup/?demo=1`](https://gitswagata1.github.io/bridgeup/?demo=1)*
 | **Faculty** | `iyer@vit.ac.in` | `teach123` |
 | **Student** | `swagata@vitstudent.ac.in` | `python123` |
 
-More demo students with varied progress (all `python123`): `aisha@`, `ben@`, `cara@` — `vitstudent.ac.in`.
+More demo students with varied progress (all `python123`): `aisha@`, `ben@`, `cara@` — `vitstudent.ac.in`, plus 10 fictional synthetic students (`<name>.demo@vitstudent.ac.in`) so the faculty dashboard shows a realistic spread. In local/demo mode the dashboard is labelled **Demo data · synthetic students**.
+
+The in-app **How ML works** page (nav bar, or *How the ML works →* on the faculty dashboard) explains the federated engine step by step.
 
 ---
 
