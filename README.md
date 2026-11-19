@@ -27,6 +27,18 @@
 
 <h3 align="center"><a href="https://gitswagata1.github.io/bridgeup/?demo=1">Try the live demo — one tap, no signup</a></h3>
 
+> **Problem:** a first-year class starts at a hundred different levels, and adaptive platforms usually personalise by collecting every student's raw behaviour on a central server.
+> **Solution:** place each learner with a diagnostic, teach with real Python in the browser, and learn *which modules are hard* through a federated signal: only a noised per-module estimate leaves the device.
+>
+> **Key features:** ① On-device learning signals → noised `{est, w}` update → server-side weighted-average aggregation (FedAvg-style), with an in-app **How the ML works** view · ② Real Python via Pyodide/WASM, 8 chapters and 99 lessons · ③ Faculty dashboard with class analytics and peer-reviewed tests
+>
+> **Tech stack:** Vanilla JS · Pyodide (WASM) · Supabase (Postgres, RLS, RPC) · PWA service worker · GitHub Pages
+>
+> **Status: prototype, deployed.** The live demo (`?demo=1`) runs in local mode on a **synthetic demo class**, labelled on screen.
+>
+> **How this maps to battery-lifespan prediction:** the same pattern lets battery fleets or partner labs contribute model updates without sharing raw cycling data. Each site keeps its data, sends a noised aggregate, and the shared degradation model improves.
+
+
 ---
 
 ## Why BridgeUp?
@@ -65,7 +77,7 @@ It's a single-page app in plain HTML, CSS, and JavaScript — **no framework, no
 | **Meaningful Completion** | Chapters close only after lessons read + quiz passed (≥70%) + graded coding challenge solved |
 | **Gamification** | XP, 5 levels (*Newcomer* → *Pythonista*), streaks, downloadable certificate with verification code |
 | **AI Tutor** | Lesson-aware chat powered by the learner's own Gemini API key — key stays in-browser, calls Google directly |
-| **Federated Learning** | Privacy-preserving adaptive engine: on-device struggle signals, differential-privacy noise, FedAvg aggregation — no raw data leaves the browser |
+| **Federated Learning** | Privacy-preserving adaptive engine: on-device struggle signals, bounded noise on each update (DP-style; formal ε-DP on the roadmap), FedAvg-style weighted aggregation. Raw events never leave the browser. See the in-app **How ML works** page |
 | **Three Roles** | Student (course + tests), Faculty (analytics + authoring), Admin (full console) |
 | **Faculty Tools** | Peer-reviewed MCQ test editor, per-chapter materials/PDFs, class marks with CSV export |
 | **Offline PWA** | Installable on any device, service worker caches shell + Python runtime |
@@ -100,6 +112,37 @@ It's a single-page app in plain HTML, CSS, and JavaScript — **no framework, no
 ```
 
 **Two modes, one codebase:** leave `js/config.js` empty for a per-browser demo, or add a Supabase URL + anon key for campus mode with real auth, cross-device sync, and row-level security.
+
+---
+
+## 🔐 Federated learning + privacy, exactly as implemented
+
+```mermaid
+flowchart LR
+  subgraph Device["Student's browser (raw data stays here)"]
+    A["Struggle signals<br/>errors · hints · attempts"] --> B["Local estimate<br/>d = 1 − e^(−0.30a − 0.20h − 0.15e)"]
+    B --> C["+ uniform noise ±0.03<br/>clip to 0..1 · weight ≤ 5"]
+  end
+  C -- "{ module: { est, w } } only" --> D["contribute_adaptive() RPC<br/>(Supabase, campus mode)"]
+  D --> E["global_model<br/>diff ← (diff·n + est·w)/(n + w)"]
+  E -- "shown only if n ≥ 2" --> F["'Commonly challenging' chip<br/>+ next-module recommendation"]
+```
+
+| Step | Where | What |
+|---|---|---|
+| Train/estimate on device | `js/adaptive.js` `observe()` / `_estimate()` | Signals counted in `localStorage`; one difficulty number per module |
+| Privacy noise | `js/adaptive.js` `_dp()` | Bounded uniform noise (±0.03) + clipping; contribution weight capped at 5 |
+| What is shared | `js/adaptive.js` `contribute()` → `js/cloud.js` | Only `{est, w}` per module, only new evidence since the last round |
+| Aggregation | `supabase/schema.sql` `contribute_adaptive()` | Weighted average enforced server-side; table stores aggregates only |
+| Use | `js/adaptive.js` `recommend()` | Blends the learner's own mastery with the shared difficulty |
+
+**Honest scope:** the shared model is a scalar per module, not a neural network. The noise is not yet a formal (ε, δ)-DP mechanism. In local/demo mode the "server" is simulated in the browser and the global model is **seeded with demo values**.
+
+### Screenshots
+
+| Faculty dashboard (demo data) | How the ML works | Simulated federation round |
+|---|---|---|
+| ![](docs/screenshots/01-faculty-dashboard.png) | ![](docs/screenshots/03-how-the-ml-works.png) | ![](docs/screenshots/04-ml-simulation-and-scope.png) |
 
 ---
 
