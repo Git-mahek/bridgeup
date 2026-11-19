@@ -1444,3 +1444,18 @@ html.light .adapt-chip.ac-hard { color: #a16207; }
   }
   body::before { animation: none !important; }
 }
+
+/* ---------- How the ML works ---------- */
+.pill-demo { color: #f59e0b; background: rgba(245,158,11,.14); }
+.ml-flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin-bottom: 20px; }
+.ml-step { flex: 1 1 160px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+.ml-step b { color: var(--ink); font-size: 14px; }
+.ml-step code, .ml-view .lead code { font-size: 12px; }
+.ml-dp { border-color: rgba(245,158,11,.55); }
+.ml-arrow { align-self: center; color: var(--muted); }
+.ml-scope { padding-left: 20px; display: grid; gap: 8px; color: var(--muted); font-size: 14px; }
+@media (max-width: 760px) { .ml-arrow { display: none; } .ml-step { flex-basis: 100%; } }
+.ml-view .dist-row { grid-template-columns: 160px 1fr 104px; }
+.ml-view .dist-val { white-space: nowrap; }
+.admin-top-actions { flex-wrap: wrap; flex: 0 1 auto; }
+@media (max-width: 640px) { .ml-view .dist-row { grid-template-columns: 110px 1fr 92px; } }

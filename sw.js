@@ -13,7 +13,7 @@
      straight to the network — never cached.
    ============================================================ */
 
-const CACHE = "bridgeup-v1";
+const CACHE = "bridgeup-v2";
 const SHELL = [
   "./",
   "./index.html",
