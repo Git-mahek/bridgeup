@@ -25,7 +25,9 @@
   <img src="https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white" alt="PWA">
 </p>
 
-<h3 align="center"><a href="https://gitswagata1.github.io/bridgeup/?demo=1">Try the live demo — one tap, no signup</a></h3>
+<h3 align="center"><a href="https://gitswagata1.github.io/bridgeup/?demo=1">▶ Live demo: one tap, no signup</a></h3>
+
+<p align="center">To see the ML: log in as Faculty with <code>rao@vit.ac.in</code> / <code>teach123</code>, then open <b>How ML works</b> and press <b>Run simulation</b>.</p>
 
 > **Problem:** a first-year class starts at a hundred different levels, and adaptive platforms usually personalise by collecting every student's raw behaviour on a central server.
 > **Solution:** place each learner with a diagnostic, teach with real Python in the browser, and learn *which modules are hard* through a federated signal: only a noised per-module estimate leaves the device.
