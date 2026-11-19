@@ -1279,7 +1279,7 @@ function viewCourse() {
         <div class="adapt-body">
           <span class="eyebrow">Adaptive path · recommended next</span>
           <h3>Chapter ${rec.ch} — ${esc(rec.title)}</h3>
-          <p class="muted">Chosen from your own progress${rec.difficulty != null ? " and the federated signal from ~" + Math.round(Adaptive.globalModel()[rec.ch].n) + " learners (no individual data shared)" : ""}. Your mastery of this module: <b>${rec.mastery}%</b>.</p>
+          <p class="muted">Chosen from your own progress${rec.difficulty != null ? " and the federated difficulty signal (n=" + Math.round(Adaptive.globalModel()[rec.ch].n) + (Cloud.enabled ? "" : ", seeded demo model") + "; no individual data shared)" : ""}. Your mastery of this module: <b>${rec.mastery}%</b>.</p>
           <div class="adapt-tags">${flag}${rec.hard ? `<span class="adapt-tip">${icon("bulb")} Tip: take it slowly and lean on the AI tutor.</span>` : ""}</div>
           <button class="btn chap-cta" data-chapter="${rec.ch}">Open Chapter ${rec.ch} →</button>
         </div>
@@ -1797,12 +1797,13 @@ function viewFaculty() {
     <section class="admin">
       <div class="admin-head">
         <div>
-          <span class="pill pill-faculty">Faculty dashboard</span>
+          <span class="pill pill-faculty">Faculty dashboard</span>${Cloud.enabled ? "" : ` <span class="pill pill-demo">Demo data · synthetic students</span>`}
           <h1>Your class, at a glance</h1>
           <p class="lead">Track every student through the Python course — who's flying, who's stuck, and where. Welcome, ${esc(firstNameOf(u.name))}.</p>
         </div>
         <div class="admin-top-actions">
           ${Cloud.enabled ? `<button class="btn btn-ghost" data-cloud-refresh>↻ Refresh data</button>` : ""}
+          <button class="btn btn-ghost" data-nav="ml">How the ML works →</button>
           <button class="btn btn-ghost" data-nav="course">Preview the course →</button>
         </div>
       </div>
@@ -1975,6 +1976,94 @@ function facultyMaterialPanel(u) {
 
 /* ---------- Router ---------- */
 
+/* ---------- How the ML works (transparent view of js/adaptive.js) ---------- */
+let mlSim = null;   // last simulated federation round (view-only, never written to the model)
+
+function simulateRound() {
+  // 20 synthetic devices each derive a difficulty estimate for module 3,
+  // add the same bounded noise Adaptive._dp() uses, and are merged by the
+  // same weighted average as Adaptive._aggregateLocal(). Nothing is stored.
+  const trueDiff = 0.62, devices = [];
+  let g = { diff: Adaptive.DIFFICULTY_PRIOR, n: 0 };
+  for (let i = 0; i < 20; i++) {
+    const local = Math.max(0, Math.min(1, trueDiff + (Math.random() - 0.5) * 0.3));
+    const sent = Adaptive._dp(local);
+    const w = 1 + Math.floor(Math.random() * Adaptive.WEIGHT_CAP);
+    g = { diff: (g.diff * g.n + sent * w) / (g.n + w), n: g.n + w };
+    devices.push({ local, sent, w });
+  }
+  return { trueDiff, devices, global: g };
+}
+
+function viewML() {
+  const model = Adaptive.globalModel();
+  const live = typeof Cloud !== "undefined" && Cloud.enabled;
+  const rows = HANDBOOK.map(c => ({ c, g: model[c.ch] }));
+  const half = (Adaptive.DP_EPSILON / 2).toFixed(2);
+  const sim = mlSim;
+  return `
+    <section class="admin ml-view">
+      <div class="admin-head">
+        <div>
+          <span class="pill pill-faculty">How the ML works</span>
+          <h1>Federated adaptive learning, step by step</h1>
+          <p class="lead">What is computed on the student's device, what is shared, where privacy noise is added, and how the shared model is updated. Everything below is read straight from <code>js/adaptive.js</code> and <code>supabase/schema.sql</code>.</p>
+        </div>
+      </div>
+
+      <div class="ml-flow">
+        <div class="ml-step"><b>1 · On device</b><span>Quiz errors, challenge retries, hints and code errors are counted in this browser (<code>localStorage</code>). Raw events never leave the device.</span></div>
+        <div class="ml-arrow">→</div>
+        <div class="ml-step"><b>2 · Local estimate</b><span>Per module: <code>difficulty = 1 − exp(−(0.30·attempts + 0.20·hints + 0.15·errors))</code>, ×0.7 if solved. One number in 0–1.</span></div>
+        <div class="ml-arrow">→</div>
+        <div class="ml-step ml-dp"><b>3 · Privacy noise</b><span>Uniform noise in ±${half} is added, then clipped to 0–1. Weight per round is capped at ${Adaptive.WEIGHT_CAP}.</span></div>
+        <div class="ml-arrow">→</div>
+        <div class="ml-step"><b>4 · Shared update</b><span>Only <code>{ module: { est, w } }</code> is sent. No raw events, no name or email in the payload.</span></div>
+        <div class="ml-arrow">→</div>
+        <div class="ml-step"><b>5 · Aggregation</b><span>Weighted average (FedAvg-style): <code>diff ← (diff·n + est·w) / (n + w)</code>. Shown only when n ≥ ${Adaptive.MIN_SAMPLES}.</span></div>
+      </div>
+
+      <div class="admin-panel">
+        <h3>Current shared model <span class="muted">· ${live ? "campus server aggregate (Supabase)" : "demo data: seeded model in local mode, not real students"}</span></h3>
+        <div class="dist">
+          ${rows.map(({ c, g }) => {
+            const m = CH_META[c.ch];
+            const d = g ? g.diff : null;
+            return `<div class="dist-row">
+              <span class="dist-label"><span class="dist-ic" style="color:${m.color}">${icon(m.icon)}</span> Ch ${c.ch} · ${esc(c.title)}</span>
+              <div class="dist-track"><div style="width:${d != null ? Math.round(d * 100) : 0}%;height:100%;border-radius:inherit;background:${m.color}"></div></div>
+              <span class="dist-val">${d != null ? d.toFixed(2) : "—"}<span class="muted"> · n=${g ? Math.round(g.n) : 0}</span></span>
+            </div>`;
+          }).join("")}
+        </div>
+        <p class="muted res-note">Difficulty 0 = easy, 1 = hard. ≥ ${Adaptive.HARD_THRESHOLD} shows a "commonly challenging" chip on the course page. n is the summed contribution weight, not a head-count.</p>
+      </div>
+
+      <div class="admin-panel">
+        <h3>Try it: simulate one federation round <span class="muted">· 20 synthetic devices, nothing is saved</span></h3>
+        <button class="btn" data-ml-sim>Run simulation</button>
+        ${sim ? `
+          <div class="stat-grid" style="margin-top:16px">
+            <div class="stat-tile"><b>${sim.trueDiff.toFixed(2)}</b><span>true difficulty (synthetic)</span></div>
+            <div class="stat-tile"><b>${(sim.devices.reduce((s, d) => s + Math.abs(d.sent - d.local), 0) / sim.devices.length).toFixed(3)}</b><span>mean |noise| per device</span></div>
+            <div class="stat-tile"><b>${sim.global.diff.toFixed(3)}</b><span>aggregated estimate</span></div>
+            <div class="stat-tile"><b>${Math.abs(sim.global.diff - sim.trueDiff).toFixed(3)}</b><span>error vs truth</span></div>
+          </div>
+          <p class="muted res-note">Each device's value is noisy, but the weighted average lands close to the true value. The aggregate starts from the prior (${Adaptive.DIFFICULTY_PRIOR}) with n = 0, so the prior has no weight.</p>` : ""}
+      </div>
+
+      <div class="admin-panel">
+        <h3>Honest scope</h3>
+        <ul class="ml-scope">
+          <li>The shared "model" is one difficulty number per module, a weighted average. It is not a neural network, and no gradients are exchanged.</li>
+          <li>The noise is bounded uniform noise (±${half}). It reduces what a single update reveals, but it is <b>not</b> a formal (ε, δ)-differential-privacy guarantee yet. A Laplace or Gaussian mechanism with a privacy budget is on the roadmap.</li>
+          <li>In campus mode the update is sent over an authenticated Supabase call. The payload has no identity, and the server stores only the aggregate.</li>
+          <li>Learners get a personal recommendation by blending their own mastery (on device) with this shared signal.</li>
+        </ul>
+      </div>
+    </section>`;
+}
+
 const views = {
   home: viewHome,
   exam: viewExam,
@@ -1985,7 +2074,8 @@ const views = {
   chapter: () => viewChapter(currentChapter),
   test: () => viewTestTake(currentTestId),
   faculty: viewFaculty,
-  admin: viewAdmin
+  admin: viewAdmin,
+  ml: viewML
 };
 
 function animateCounters() {
@@ -2088,6 +2178,7 @@ document.addEventListener("click", (e) => {
     return;
   }
 
+  if (e.target.closest("[data-ml-sim]")) { mlSim = simulateRound(); render("ml"); return; }
   const nav = e.target.closest("[data-nav]");
   if (nav) {
     if (nav.tagName === "A") e.preventDefault(); // don't let the logo anchor jump to "#"
@@ -2544,12 +2635,27 @@ const DEMO_SEED = [
   { email: "ben@vitstudent.ac.in", name: "Ben Thomas", role: "student", pw: "python123",
     prog: { score: 3, sec: { 1: "all", 2: 2 }, quiz: [1], chal: [1], practice: [1] } },
   { email: "cara@vitstudent.ac.in", name: "Cara Menezes", role: "student", pw: "python123",
-    prog: { score: 7, sec: { 1: 3 }, quiz: [], chal: [], practice: [] } }
+    prog: { score: 7, sec: { 1: 3 }, quiz: [], chal: [], practice: [] } },
+  /* synthetic demo students (fictional) so the faculty dashboard has a realistic spread */
+  ...[
+    ["dev", "Dev Malhotra", 8, { 1: "all", 2: "all", 3: "all", 4: "all", 5: 2 }, [1, 2, 3, 4], [1, 2, 3], [1, 2, 3, 4]],
+    ["ishita", "Ishita Roy", 5, { 1: "all", 2: "all", 3: 2 }, [1, 2], [1], [1, 2]],
+    ["karthik", "Karthik Nair", 4, { 1: "all", 2: 3 }, [1], [1], [1]],
+    ["leena", "Leena Joseph", 9, { 1: "all", 2: "all", 3: "all", 4: "all", 5: "all", 6: 3 }, [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5]],
+    ["manav", "Manav Shah", 2, { 1: 2 }, [], [], []],
+    ["nikhil", "Nikhil Reddy", 6, { 1: "all", 2: "all", 3: "all" }, [1, 2, 3], [1, 2], [1, 2, 3]],
+    ["priya", "Priya Sundaram", 7, { 1: "all", 2: "all", 3: "all", 4: 2 }, [1, 2, 3], [1, 2, 3], [1, 2, 3]],
+    ["rahul", "Rahul Verma", 3, { 1: "all" }, [1], [], [1]],
+    ["sana", "Sana Qureshi", 5, { 1: "all", 2: "all", 3: 1 }, [1, 2], [1, 2], [1, 2]],
+    ["tanvi", "Tanvi Kulkarni", 1, {}, [], [], []]
+  ].map(([id, name, score, sec, quiz, chal, practice]) => ({
+    email: id + ".demo@vitstudent.ac.in", name, role: "student", pw: "python123",
+    prog: { score, sec, quiz, chal, practice } }))
 ];
 
 async function seedDemo() {
   if (Cloud.enabled) return;   // campus mode: real accounts only, no demo cohort
-  const SEED_V = "2";   // bump to reseed newly-added demo accounts (never clobbers existing ones)
+  const SEED_V = "3";   // bump to reseed newly-added demo accounts (never clobbers existing ones)
   if (localStorage.getItem("bridgeup_demo_seeded") === SEED_V) return;
   const accounts = JSON.parse(localStorage.getItem(Auth.accountsKey) || "{}");
   for (const d of DEMO_SEED) {
